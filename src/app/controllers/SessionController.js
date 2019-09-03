@@ -1,12 +1,24 @@
 import jwt from "jsonwebtoken";
 import { promisify } from "util";
+import * as Yup from "yup";
 
 import User from "../models/User";
 import authConfig from "../../config/auth";
 
 class SessionController {
   async store(request, response) {
-    // TODO: Data validation with Yup
+    const schema = Yup.object().shape({
+      email: Yup.string()
+        .email()
+        .required(),
+      password: Yup.string().required(),
+    });
+
+    if (!(await schema.isValid(request.body))) {
+      return response
+        .status(400)
+        .json({ error: "Invalid data. Schema validation has failed." });
+    }
 
     const { email, password } = request.body;
 
