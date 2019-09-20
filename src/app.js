@@ -1,7 +1,9 @@
 import "dotenv/config";
 
 import express from "express";
+import "express-async-errors";
 import { resolve } from "path";
+import Youch from "youch";
 
 import routes from "./routes";
 
@@ -13,6 +15,7 @@ class App {
 
     this.middlewares();
     this.routes();
+    this.exceptionHandler();
   }
 
   middlewares() {
@@ -25,6 +28,22 @@ class App {
 
   routes() {
     this.server.use(routes);
+  }
+
+  exceptionHandler() {
+    this.server.use(async (error, request, response, next) => {
+      if (process.env.NODE_ENV === "development") {
+        try {
+          const errors = await new Youch(error, request).toJSON();
+
+          return response.status(500).json({ errors });
+        } catch (err) {
+          return response.status(500).json({ error: err.message });
+        }
+      }
+
+      return response.status(500).json({ error: "Internal server error." });
+    });
   }
 }
 

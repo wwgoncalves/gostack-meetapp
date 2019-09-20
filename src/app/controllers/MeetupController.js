@@ -19,9 +19,7 @@ class MeetupController {
         .json({ error: "Invalid data. Schema validation has failed." });
     }
 
-    const parsedDate = parseISO(request.body.date);
-
-    if (isBefore(parsedDate, new Date())) {
+    if (isBefore(parseISO(request.body.date), new Date())) {
       return response.status(400).json({ error: "Past dates are forbidden." });
     }
 

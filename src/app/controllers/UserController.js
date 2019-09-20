@@ -20,25 +20,21 @@ class UserController {
         .json({ error: "Invalid data. Schema validation has failed." });
     }
 
-    try {
-      const userExists = await User.findOne({
-        where: { email: request.body.email },
-      });
+    const userExists = await User.findOne({
+      where: { email: request.body.email },
+    });
 
-      if (userExists) {
-        return response.status(400).json({ error: "User already exists." });
-      }
-
-      const { id, name, email } = await User.create(request.body);
-
-      return response.status(201).json({
-        id,
-        name,
-        email,
-      });
-    } catch (error) {
-      return response.status(500).json({ error });
+    if (userExists) {
+      return response.status(400).json({ error: "User already exists." });
     }
+
+    const { id, name, email } = await User.create(request.body);
+
+    return response.status(201).json({
+      id,
+      name,
+      email,
+    });
   }
 
   async update(request, response) {
@@ -62,36 +58,32 @@ class UserController {
         .json({ error: "Invalid data. Schema validation has failed." });
     }
 
-    try {
-      const user = await User.findByPk(request.userId);
-      const { email, oldPassword } = request.body;
+    const user = await User.findByPk(request.userId);
+    const { email, oldPassword } = request.body;
 
-      // Is the new e-mail already in use?
-      if (email && email !== user.email) {
-        const userExists = await User.findOne({ where: { email } });
+    // Is the new e-mail already in use?
+    if (email && email !== user.email) {
+      const userExists = await User.findOne({ where: { email } });
 
-        if (userExists) {
-          return response.status(400).json({ error: "User already exists." });
-        }
+      if (userExists) {
+        return response.status(400).json({ error: "User already exists." });
       }
-
-      // Is the (old)password provided correct?
-      if (oldPassword && !(await user.checkPassword(oldPassword))) {
-        return response
-          .status(401)
-          .json({ error: "Current password does not match." });
-      }
-
-      const userUpdated = await user.update(request.body);
-
-      return response.status(200).json({
-        id: userUpdated.id,
-        name: userUpdated.name,
-        email: userUpdated.email,
-      });
-    } catch (error) {
-      return response.status(500).json({ error });
     }
+
+    // Is the (old)password provided correct?
+    if (oldPassword && !(await user.checkPassword(oldPassword))) {
+      return response
+        .status(401)
+        .json({ error: "Current password does not match." });
+    }
+
+    const userUpdated = await user.update(request.body);
+
+    return response.status(200).json({
+      id: userUpdated.id,
+      name: userUpdated.name,
+      email: userUpdated.email,
+    });
   }
 }
 
