@@ -64,6 +64,54 @@ class MeetupController {
 
     return response.status(201).json(meetup);
   }
+
+  async update(request, response) {
+    const meetup = await Meetup.findByPk(request.params.id);
+
+    if (!meetup) {
+      return response.status(400).json({ error: "Meetup not found." });
+    }
+
+    if (meetup.user_id !== request.userId) {
+      return response.status(403).json({
+        error: "Only the meetup organizer can edit its information.",
+      });
+    }
+
+    if (isBefore(meetup.date, new Date())) {
+      return response
+        .status(400)
+        .json({ error: "Past events cannot be edited." });
+    }
+
+    const meetupUpdated = await meetup.update(request.body);
+
+    return response.json(meetupUpdated);
+  }
+
+  async delete(request, response) {
+    const meetup = await Meetup.findByPk(request.params.id);
+
+    if (!meetup) {
+      return response.status(400).json({ error: "Meetup not found." });
+    }
+
+    if (meetup.user_id !== request.userId) {
+      return response.status(403).json({
+        error: "Only the meetup organizer can delete this meetup.",
+      });
+    }
+
+    if (isBefore(meetup.date, new Date())) {
+      return response
+        .status(400)
+        .json({ error: "Past events cannot be deleted." });
+    }
+
+    await meetup.destroy();
+
+    return response.status(204).end();
+  }
 }
 
 export default new MeetupController();
