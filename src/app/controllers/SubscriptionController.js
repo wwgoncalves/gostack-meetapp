@@ -1,5 +1,4 @@
-import { isBefore, format } from "date-fns";
-import enUS from "date-fns/locale/en-US";
+import { isBefore } from "date-fns";
 import { Op } from "sequelize";
 
 import Subscription from "../models/Subscription";
@@ -7,7 +6,8 @@ import Meetup from "../models/Meetup";
 import User from "../models/User";
 import File from "../models/File";
 
-import Mail from "../../lib/Mail";
+import SubscriptionMail from "../jobs/SubscriptionMail";
+import Queue from "../../lib/Queue";
 
 class SubscriptionController {
   async index(request, response) {
@@ -116,21 +116,9 @@ class SubscriptionController {
      * Send an e-mail to the organizer notifying them the subscription
      */
     const user = await User.findByPk(request.userId);
-    await Mail.sendMail({
-      to: `${meetup.organizer.name} <${meetup.organizer.email}>`,
-      subject: "New subscription",
-      template: "subscription",
-      context: {
-        organizerName: meetup.organizer.name,
-        userName: user.name,
-        userEmail: user.email,
-        meetupTitle: meetup.title,
-        meetupDate: format(
-          meetup.date,
-          "'on' iiii',' MMMM dd 'at' HH:mm '('zzzz')'",
-          { locale: enUS }
-        ),
-      },
+    await Queue.add(SubscriptionMail.key, {
+      meetup,
+      user,
     });
 
     return response.status(201).json(subscription);
