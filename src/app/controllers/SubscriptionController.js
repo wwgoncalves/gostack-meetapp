@@ -1,10 +1,13 @@
-import { isBefore, parseISO } from "date-fns";
+import { isBefore, format } from "date-fns";
+import enUS from "date-fns/locale/en-US";
 import { Op } from "sequelize";
 
 import Subscription from "../models/Subscription";
 import Meetup from "../models/Meetup";
 import User from "../models/User";
 import File from "../models/File";
+
+import Mail from "../../lib/Mail";
 
 class SubscriptionController {
   async index(request, response) {
@@ -42,7 +45,15 @@ class SubscriptionController {
   }
 
   async store(request, response) {
-    const meetup = await Meetup.findByPk(request.params.meetupId);
+    const meetup = await Meetup.findByPk(request.params.meetupId, {
+      include: [
+        {
+          model: User,
+          as: "organizer",
+          attributes: ["name", "email"],
+        },
+      ],
+    });
 
     if (!meetup) {
       return response.status(400).json({ error: "Meetup not found." });
@@ -104,6 +115,23 @@ class SubscriptionController {
     /**
      * Send an e-mail to the organizer notifying them the subscription
      */
+    const user = await User.findByPk(request.userId);
+    await Mail.sendMail({
+      to: `${meetup.organizer.name} <${meetup.organizer.email}>`,
+      subject: "New subscription",
+      template: "subscription",
+      context: {
+        organizerName: meetup.organizer.name,
+        userName: user.name,
+        userEmail: user.email,
+        meetupTitle: meetup.title,
+        meetupDate: format(
+          meetup.date,
+          "'on' iiii',' MMMM dd 'at' HH:mm '('zzzz')'",
+          { locale: enUS }
+        ),
+      },
+    });
 
     return response.status(201).json(subscription);
   }
