@@ -84,21 +84,22 @@ class SubscriptionController {
         .json({ error: "Users cannot subscribe twice to a meetup." });
     }
 
-    const subscriptions = await Subscription.findAll({
+    const timeConflict = await Subscription.findOne({
       where: {
         user_id: request.userId,
       },
       attributes: ["meetup_id"],
-    });
-
-    const timeConflict = await Meetup.findOne({
-      where: {
-        id: {
-          [Op.in]: subscriptions.map(subscription => subscription.meetup_id),
+      include: [
+        {
+          model: Meetup,
+          as: "meetup",
+          required: true,
+          where: {
+            date: meetup.date,
+          },
+          attributes: ["id"],
         },
-        date: meetup.date,
-      },
-      attributes: ["id"],
+      ],
     });
 
     if (timeConflict) {
